@@ -1,5 +1,6 @@
 package com.mensageria.livechat.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -12,6 +13,7 @@ import org.springframework.web.util.HtmlUtils;
 import com.mensageria.livechat.domain.ChatOutput;
 import com.mensageria.livechat.dto.ChatInputDTO;
 import com.mensageria.livechat.dto.ErrorResponseDTO;
+import com.mensageria.livechat.service.ChatMessageService;
 
 import jakarta.validation.Valid;
 
@@ -19,10 +21,16 @@ import jakarta.validation.Valid;
 @Validated
 public class LiveChatController {
 
+    @Autowired
+    private ChatMessageService chatMessageService;
+
     @MessageMapping("/new-message")
     @SendTo("/topics/livechat")
     public ChatOutput newMessage(@Valid ChatInputDTO input) {
-        return new ChatOutput(HtmlUtils.htmlEscape(input.getUser() + ": " + input.getMessage()));
+        ChatOutput output = new ChatOutput(HtmlUtils.htmlEscape(input.getUser() + ": " + input.getMessage()));
+        chatMessageService.saveMessage(output);
+
+        return output;
     }
 
     @MessageExceptionHandler(MethodArgumentNotValidException.class)
