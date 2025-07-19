@@ -3,12 +3,15 @@ package com.mensageria.livechat.controller;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.util.HtmlUtils;
 
 import com.mensageria.livechat.domain.ChatOutput;
 import com.mensageria.livechat.dto.ChatInputDTO;
+import com.mensageria.livechat.dto.ErrorResponseDTO;
 
 import jakarta.validation.Valid;
 
@@ -22,8 +25,22 @@ public class LiveChatController {
         return new ChatOutput(HtmlUtils.htmlEscape(input.getUser() + ": " + input.getMessage()));
     }
 
-    @MessageExceptionHandler
-    public String handleValidationException (Exception ex) {
-        return "Erro: " + ex.getMessage();
+    @MessageExceptionHandler(MethodArgumentNotValidException.class)
+    @SendToUser("/queue/errors")
+    public ErrorResponseDTO handleValidationException (MethodArgumentNotValidException ex) {
+        
+        ErrorResponseDTO error = new ErrorResponseDTO("Erro na validação.");
+
+        ex.getBindingResult().getFieldErrors().forEach(err -> {
+            error.addFieldErrors(err.getField(), err.getDefaultMessage());
+        });
+
+        return error;
+    }
+
+    @MessageExceptionHandler(Exception.class)
+    @SendToUser("/queue/errors")
+    public ErrorResponseDTO handleGenericException(Exception ex) {
+        return new ErrorResponseDTO("Erro interno: " + ex.getMessage());
     }
 }

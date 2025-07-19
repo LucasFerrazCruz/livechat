@@ -19,6 +19,12 @@ stompClient.onStompError = (frame) => {
   console.error("Additional details: " + frame.body);
 };
 
+stompClient.subscribe("/user/queue/errors", function (errorMessage) {
+  const error = JSON.parse(errorMessage.body);
+  console.error("Erro recebido: ", error);
+  alert(error.message);
+});
+
 function setConnected(connected) {
   $("#connect").prop("disabled", connected);
   $("#disconnect").prop("disabled", !connected);
